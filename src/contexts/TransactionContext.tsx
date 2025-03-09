@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 
 // Transaction types
@@ -122,105 +121,55 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
       .slice(0, limit);
   }, [transactions]);
 
-  // Generate portfolio data points from transactions with improved accuracy
+  // Generate portfolio data points from transactions with transaction count as x-axis
   const getPortfolioChartData = useCallback(() => {
     console.log("Generating portfolio chart data from", transactions.length, "transactions");
     
-    // If there are no transactions, return some initial data
+    // If there are no transactions, return initial empty data
     if (transactions.length === 0) {
-      const initialData: PortfolioDataPoint[] = [];
-      const now = new Date();
-      
-      // Generate data for the last 30 days
-      for (let i = 30; i >= 0; i--) {
-        const date = new Date(now);
-        date.setDate(date.getDate() - i);
-        
-        initialData.push({
-          name: date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }),
-          value: 0,
-          timestamp: new Date(date)
-        });
-      }
-      
-      return initialData;
+      return [{ name: "0", value: 0, timestamp: new Date() }];
     }
 
-    // Sort transactions by date
+    // Sort transactions by date (oldest first)
     const sortedTransactions = [...transactions]
       .filter(tx => tx.status === 'completed')
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
     
     if (sortedTransactions.length === 0) {
       // If all transactions are pending/failed, return empty data
-      const initialData: PortfolioDataPoint[] = [];
-      const now = new Date();
-      
-      for (let i = 7; i >= 0; i--) {
-        const date = new Date(now);
-        date.setDate(date.getDate() - i);
-        
-        initialData.push({
-          name: date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }),
-          value: 0,
-          timestamp: new Date(date)
-        });
-      }
-      
-      return initialData;
+      return [{ name: "0", value: 0, timestamp: new Date() }];
     }
-    
-    // Get the first transaction date and current date
-    const firstDate = new Date(sortedTransactions[0].timestamp);
-    firstDate.setDate(firstDate.getDate() - 1); // Start from day before first transaction
-    
-    const lastDate = new Date(); // Current date
     
     const dataPoints: PortfolioDataPoint[] = [];
     let runningTotal = 0;
     
-    // Process all transactions chronologically to calculate running total at each day
-    const currentDate = new Date(firstDate);
-    const processedTxIds = new Set<string>();
+    // Add a starting point
+    dataPoints.push({
+      name: "0",
+      value: 0,
+      timestamp: new Date(sortedTransactions[0].timestamp.getTime() - 86400000) // 1 day before first transaction
+    });
     
-    while (currentDate <= lastDate) {
-      const dayStart = new Date(currentDate);
-      dayStart.setHours(0, 0, 0, 0);
+    // Process all transactions and add a data point for each
+    sortedTransactions.forEach((tx, index) => {
+      // Update running total based on transaction type
+      if (tx.type === 'deposit' || tx.type === 'lend') {
+        runningTotal += tx.amount;
+      } else if (tx.type === 'withdraw') {
+        runningTotal -= tx.amount;
+      } else if (tx.type === 'borrow') {
+        runningTotal += tx.amount;
+      } else if (tx.type === 'repay') {
+        runningTotal -= tx.amount;
+      }
       
-      const dayEnd = new Date(currentDate);
-      dayEnd.setHours(23, 59, 59, 999);
-      
-      // Process all transactions that occurred on or before this day
-      sortedTransactions.forEach(tx => {
-        const txDate = new Date(tx.timestamp);
-        
-        // If transaction happened on or before this day and hasn't been processed yet
-        if (txDate <= dayEnd && !processedTxIds.has(tx.id)) {
-          // Update running total based on transaction type
-          if (tx.type === 'deposit' || tx.type === 'lend') {
-            runningTotal += tx.amount;
-          } else if (tx.type === 'withdraw') {
-            runningTotal -= tx.amount;
-          } else if (tx.type === 'borrow') {
-            runningTotal += tx.amount;
-          } else if (tx.type === 'repay') {
-            runningTotal -= tx.amount;
-          }
-          
-          processedTxIds.add(tx.id);
-        }
-      });
-      
-      // Add data point for this day
+      // Add data point for this transaction
       dataPoints.push({
-        name: currentDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }),
+        name: String(index + 1), // Transaction count (1-indexed)
         value: Math.max(0, runningTotal), // Ensure not negative
-        timestamp: new Date(currentDate)
+        timestamp: new Date(tx.timestamp)
       });
-      
-      // Move to next day
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
+    });
     
     console.log("Generated chart data points:", dataPoints.length);
     return dataPoints;

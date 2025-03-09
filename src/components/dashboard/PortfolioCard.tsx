@@ -25,7 +25,7 @@ const PortfolioCard: React.FC = () => {
     if (portfolioData.length < 2) return 0;
     
     const currentValue = portfolioData[portfolioData.length - 1].value;
-    const previousValue = portfolioData[portfolioData.length - 2].value;
+    const previousValue = portfolioData.length > 2 ? portfolioData[portfolioData.length - 2].value : 0;
     
     if (previousValue === 0) return 0;
     return ((currentValue - previousValue) / previousValue) * 100;
@@ -44,7 +44,7 @@ const PortfolioCard: React.FC = () => {
             <span className={`px-2 py-1 text-xs font-medium rounded-md ${percentChange >= 0 ? 'bg-green-500/20 text-green-700 dark:text-green-400' : 'bg-red-500/20 text-red-700 dark:text-red-400'}`}>
               {percentChange >= 0 ? '+' : ''}{percentChange.toFixed(2)}%
             </span>
-            <span className="text-sm text-muted-foreground">24h</span>
+            <span className="text-sm text-muted-foreground">Last Transaction</span>
           </div>
         </div>
         <div className="flex items-center gap-2 mt-2">
@@ -72,7 +72,8 @@ const PortfolioCard: React.FC = () => {
                 fontSize={10} 
                 tickLine={false} 
                 axisLine={false}
-                tickFormatter={(value) => value}
+                tickFormatter={(value) => `Tx ${value}`}
+                label={{ value: 'Transactions', position: 'insideBottomRight', offset: -5 }}
               />
               <YAxis 
                 type="number"
@@ -84,6 +85,7 @@ const PortfolioCard: React.FC = () => {
                 width={40}
                 tickCount={5}
                 domain={[0, 'auto']}
+                label={{ value: 'Value ($)', angle: -90, position: 'insideLeft' }}
               />
               <Tooltip content={<CustomTooltip />} />
               <Area 
