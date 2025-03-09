@@ -1,18 +1,14 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Label } from '@/components/ui/label';
 import { ThemeProvider } from '@/contexts/ThemeContext';
-import { ArrowRight, ArrowUp, ArrowDown, CircuitBoard, Bitcoin, Search, Bell, User, ChevronDown, Calendar, TrendingUp, Wallet, ExternalLink, Zap, Plus, BarChart3 } from 'lucide-react';
+import { ArrowRight, ArrowUp, ArrowDown, CircuitBoard, Bitcoin, Wallet, Zap, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from "@/hooks/use-toast";
+import DashboardHeader from '@/components/dashboard/DashboardHeader';
+import TransactionList from '@/components/dashboard/TransactionList';
+import { TransactionProvider, useTransactions } from '@/contexts/TransactionContext';
 
-// Sample data for charts
 const performanceData = [
   { name: '10-25', value: 120 },
   { name: '10-26', value: 130 },
@@ -105,344 +101,335 @@ const cryptoAssets = [
   },
 ];
 
-const Dashboard = () => {
+const DashboardContent = () => {
   const [timeFrame, setTimeFrame] = useState('30d');
+  const [walletAddress, setWalletAddress] = useState('');
+  const navigate = useNavigate();
+  const { getTotalDeposited, getTotalBorrowed } = useTransactions();
+  
+  useEffect(() => {
+    const checkWalletConnection = async () => {
+      if (window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          if (accounts && accounts.length > 0) {
+            setWalletAddress(accounts[0]);
+          } else {
+            toast({
+              title: "Wallet Not Connected",
+              description: "Please connect your wallet to access the dashboard.",
+              variant: "destructive"
+            });
+            navigate('/');
+          }
+        } catch (error) {
+          console.error("Error checking wallet connection:", error);
+          navigate('/');
+        }
+      } else {
+        toast({
+          title: "Wallet Not Found",
+          description: "Please install MetaMask to use this application.",
+          variant: "destructive"
+        });
+        navigate('/');
+      }
+    };
+
+    checkWalletConnection();
+
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', (accounts: string[]) => {
+        if (accounts.length === 0) {
+          navigate('/');
+        } else {
+          setWalletAddress(accounts[0]);
+        }
+      });
+    }
+
+    return () => {
+      if (window.ethereum && window.ethereum.removeListener) {
+        window.ethereum.removeListener('accountsChanged', () => {});
+      }
+    };
+  }, [navigate]);
+
+  if (!walletAddress) {
+    return null;
+  }
+
+  const truncateAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const totalDeposited = getTotalDeposited();
+  const totalBorrowed = getTotalBorrowed();
   
   return (
-    <ThemeProvider>
-      <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-        {/* Background elements */}
-        <div className="fixed inset-0 z-[-2] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-lending-primary/5 via-transparent to-transparent opacity-70 pointer-events-none dark:opacity-50 light:opacity-20"></div>
-        
-        {/* Circuit board background pattern */}
-        <div className="fixed inset-0 z-[-2] pointer-events-none overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-full">
-            {/* Horizontal lines */}
-            <div className="absolute top-[10%] left-0 w-full h-px dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
-            <div className="absolute top-[30%] left-0 w-full h-px dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
-            <div className="absolute top-[50%] left-0 w-full h-px dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
-            <div className="absolute top-[70%] left-0 w-full h-px dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
-            <div className="absolute top-[90%] left-0 w-full h-px dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
-            
-            {/* Vertical lines */}
-            <div className="absolute top-0 left-[10%] w-px h-full dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
-            <div className="absolute top-0 left-[30%] w-px h-full dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
-            <div className="absolute top-0 left-[50%] w-px h-full dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
-            <div className="absolute top-0 left-[70%] w-px h-full dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
-            <div className="absolute top-0 left-[90%] w-px h-full dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
-            
-            {/* Connection dots */}
-            <div className="absolute top-[10%] left-[10%] w-2 h-2 rounded-full dark:bg-lending-primary/5 light:bg-indigo-300/10"></div>
-            <div className="absolute top-[30%] left-[30%] w-2 h-2 rounded-full dark:bg-lending-primary/5 light:bg-indigo-300/10"></div>
-            <div className="absolute top-[50%] left-[50%] w-2 h-2 rounded-full dark:bg-lending-primary/5 light:bg-indigo-300/10"></div>
-            <div className="absolute top-[70%] left-[70%] w-2 h-2 rounded-full dark:bg-lending-primary/5 light:bg-indigo-300/10"></div>
-            <div className="absolute top-[90%] left-[90%] w-2 h-2 rounded-full dark:bg-lending-primary/5 light:bg-indigo-300/10"></div>
-          </div>
-        </div>
-        
-        {/* Dashboard header section */}
-        <header className="py-4 px-6 border-b dark:border-lending-border light:border-gray-200">
-          <div className="container mx-auto">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-8">
-                <div className="flex items-center">
-                  <CircuitBoard className="h-8 w-8 text-lending-primary mr-2" />
-                  <span className="text-xl font-bold text-foreground">LenDiverse.ai</span>
-                </div>
-                <nav className="hidden md:flex space-x-6">
-                  <a href="/dashboard" className="px-1 py-2 text-foreground font-medium border-b-2 border-lending-primary">Dashboard</a>
-                  <a href="/" className="px-1 py-2 text-muted-foreground hover:text-foreground transition-colors">My Portfolio</a>
-                  <a href="/" className="px-1 py-2 text-muted-foreground hover:text-foreground transition-colors">Saved</a>
-                  <a href="/" className="px-1 py-2 text-muted-foreground hover:text-foreground transition-colors">Lists</a>
-                </nav>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="relative hidden md:block">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input 
-                    type="search" 
-                    placeholder="Search assets..." 
-                    className="w-64 pl-9 bg-background border-input" 
-                  />
-                </div>
-                <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg dark:bg-lending-primary/20 light:bg-indigo-100 border dark:border-lending-primary/30 light:border-indigo-300 text-foreground hover:bg-lending-primary/30 transition-colors">
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden md:inline-block">Generate</span>
-                </button>
-                <button className="relative p-2 rounded-full hover:bg-muted transition-colors">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-lending-primary rounded-full"></span>
-                </button>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-lending-secondary flex items-center justify-center text-white font-medium">
-                    WS
-                  </div>
-                  <span className="hidden md:inline-block font-medium">Wilbur Stroman</span>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-        
-        <main className="py-8 px-6">
-          <div className="container mx-auto">
-            <h1 className="text-4xl font-bold text-foreground mb-8">Dashboard</h1>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-              {/* Evaluation Card */}
-              <Card className="col-span-1 dark:bg-lending-card/70 backdrop-blur-sm border dark:border-lending-border light:border-gray-200 shadow-md hover:shadow-lg transition-all duration-300">
-                <CardHeader>
-                  <CardTitle className="text-xl">Evaluation</CardTitle>
-                  <CardDescription>Total assets</CardDescription>
-                  <div className="flex items-baseline mt-2">
-                    <span className="text-4xl font-bold">$49,825</span>
-                    <span className="text-2xl font-bold text-muted-foreground ml-1">.82</span>
-                    <div className="ml-4 flex items-center gap-1">
-                      <span className="px-2 py-1 text-xs font-medium rounded-md bg-green-500/20 text-green-700 dark:text-green-400">+1.9%</span>
-                      <span className="text-sm text-muted-foreground">$747.29</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-sm">Strong performance</span>
-                    <ArrowUp className="h-4 w-4 text-green-500" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-48">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={performanceData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                        <defs>
-                          <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.1}/>
-                            <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <XAxis dataKey="name" stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Area 
-                          type="monotone" 
-                          dataKey="value" 
-                          stroke="#8B5CF6" 
-                          strokeWidth={2}
-                          fillOpacity={1}
-                          fill="url(#colorValue)"
-                          activeDot={{ r: 6, fill: '#8B5CF6', stroke: '#fff', strokeWidth: 2 }}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                  
-                  <div className="mt-6 grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total profit</p>
-                      <div className="flex items-center mt-1">
-                        <span className="text-xl font-bold text-green-500">+$6,801.19</span>
-                      </div>
-                      <p className="text-xs text-green-500">+15.81%</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Avg. monthly</p>
-                      <div className="flex items-center mt-1">
-                        <span className="text-xl font-bold text-red-500">-1.34%</span>
-                      </div>
-                      <p className="text-xs text-red-500">-$523</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Best token</p>
-                      <div className="flex items-center gap-1 mt-1">
-                        <CircuitBoard className="h-5 w-5 text-lending-primary" />
-                        <span className="text-xl font-bold">Cardano</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">ADA</p>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6 grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Portfolio score</p>
-                      <div className="flex items-center mt-1">
-                        <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-bold mr-2">
-                          B
-                        </div>
-                        <span className="text-xl font-bold">69</span>
-                        <span className="text-muted-foreground">/100</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Good</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">AIRA</p>
-                      <div className="flex items-center mt-1">
-                        <span className="text-xl font-bold">74%</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Rebalance accuracy</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">PRI</p>
-                      <div className="flex items-center mt-1">
-                        <span className="text-xl font-bold">0.45</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Resilience index: Risky</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* Allocation Card */}
-              <Card className="col-span-1 lg:col-span-2 dark:bg-lending-card/70 backdrop-blur-sm border dark:border-lending-border light:border-gray-200 shadow-md hover:shadow-lg transition-all duration-300">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-xl">Allocation</CardTitle>
-                  </div>
-                  <div className="relative">
-                    <Button variant="outline" className="flex items-center gap-2">
-                      <span>Last {timeFrame === '30d' ? '30 days' : timeFrame === '7d' ? '7 days' : '24 hours'}</span>
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {cryptoAssets.map((asset) => (
-                      <div 
-                        key={asset.id}
-                        className="p-4 rounded-xl dark:bg-lending-dark/50 light:bg-white border dark:border-lending-border light:border-gray-200 hover:shadow-md transition-all duration-300"
-                      >
-                        <div className="flex justify-between items-center mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              asset.id === 'bitcoin' ? 'bg-amber-500/20' : 
-                              asset.id === 'ethereum' ? 'bg-indigo-500/20' :
-                              asset.id === 'cardano' ? 'bg-blue-500/20' :
-                              asset.id === 'algorand' ? 'bg-green-500/20' :
-                              'bg-purple-500/20'
-                            }`}>
-                              <asset.icon className={`h-5 w-5 ${
-                                asset.id === 'bitcoin' ? 'text-amber-500' : 
-                                asset.id === 'ethereum' ? 'text-indigo-500' :
-                                asset.id === 'cardano' ? 'text-blue-500' :
-                                asset.id === 'algorand' ? 'text-green-500' :
-                                'text-purple-500'
-                              }`} />
-                            </div>
-                            <div>
-                              <p className="font-medium">{asset.name}</p>
-                              <p className="text-xs text-muted-foreground">{asset.symbol}</p>
-                            </div>
-                          </div>
-                          {asset.id === 'cardano' || asset.id === 'polkadot' ? (
-                            <div className="w-6 h-6 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-                              <ArrowDown className="h-3 w-3 text-red-500" />
-                            </div>
-                          ) : null}
-                        </div>
-                        
-                        <div className="flex justify-between items-baseline">
-                          <p className="text-2xl font-bold">{asset.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-                          <p className="text-sm text-muted-foreground">{asset.allocation.toFixed(2)}%</p>
-                        </div>
-                        
-                        <div className="mt-2 text-sm flex justify-between">
-                          <span className="text-muted-foreground">${asset.value.toLocaleString()}</span>
-                          <span className={asset.positive ? 'text-green-500' : 'text-red-500'}>
-                            {asset.positive ? '+' : ''}{asset.change}%
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="mt-8">
-                    <h3 className="text-xl font-bold mb-4">Breakdown</h3>
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Token</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Value</TableHead>
-                            <TableHead>Allocation</TableHead>
-                            <TableHead>Price</TableHead>
-                            <TableHead></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {cryptoAssets.map((asset) => (
-                            <TableRow key={asset.id}>
-                              <TableCell>
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                    asset.id === 'bitcoin' ? 'bg-amber-500/20' : 
-                                    asset.id === 'ethereum' ? 'bg-indigo-500/20' :
-                                    asset.id === 'cardano' ? 'bg-blue-500/20' :
-                                    asset.id === 'algorand' ? 'bg-green-500/20' :
-                                    'bg-purple-500/20'
-                                  }`}>
-                                    <asset.icon className={`h-4 w-4 ${
-                                      asset.id === 'bitcoin' ? 'text-amber-500' : 
-                                      asset.id === 'ethereum' ? 'text-indigo-500' :
-                                      asset.id === 'cardano' ? 'text-blue-500' :
-                                      asset.id === 'algorand' ? 'text-green-500' :
-                                      'text-purple-500'
-                                    }`} />
-                                  </div>
-                                  <div>
-                                    <p className="font-medium">{asset.name}</p>
-                                    <p className="text-xs text-muted-foreground">{asset.symbol}</p>
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell>{asset.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
-                              <TableCell>${asset.value.toLocaleString()}</TableCell>
-                              <TableCell>
-                                <div className="w-20 bg-muted rounded-full h-2">
-                                  <div 
-                                    className={`h-full rounded-full ${
-                                      asset.id === 'bitcoin' ? 'bg-amber-500' : 
-                                      asset.id === 'ethereum' ? 'bg-indigo-500' :
-                                      asset.id === 'cardano' ? 'bg-blue-500' :
-                                      asset.id === 'algorand' ? 'bg-green-500' :
-                                      'bg-purple-500'
-                                    }`}
-                                    style={{ width: `${asset.allocation}%` }}
-                                  ></div>
-                                </div>
-                                <span className="text-xs text-muted-foreground mt-1">{asset.allocation.toFixed(2)}%</span>
-                              </TableCell>
-                              <TableCell>${asset.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                              <TableCell>
-                                <Button variant="ghost" size="icon">
-                                  <ExternalLink className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </main>
-        
-        {/* Modern scrolling indicator */}
-        <div className="fixed bottom-8 right-8 z-50 dark:bg-lending-card/80 light:bg-white/80 backdrop-blur-md p-3 rounded-full shadow-lg border dark:border-lending-primary/20 light:border-indigo-200 opacity-80 hover:opacity-100 transition-all duration-300 hover-glow">
-          <div className="w-1 h-12 dark:bg-lending-dark light:bg-gray-200 rounded-full overflow-hidden">
-            <div className="w-full dark:bg-lending-primary light:bg-indigo-500 rounded-full animate-pulse-slow" style={{
-              height: `${Math.min(window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100, 100)}%`,
-              transition: 'height 0.3s ease-out'
-            }}></div>
-          </div>
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+      <div className="fixed inset-0 z-[-2] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-lending-primary/5 via-transparent to-transparent opacity-70 pointer-events-none dark:opacity-50 light:opacity-20"></div>
+      
+      <div className="fixed inset-0 z-[-2] pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute top-[10%] left-0 w-full h-px dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
+          <div className="absolute top-[30%] left-0 w-full h-px dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
+          <div className="absolute top-[50%] left-0 w-full h-px dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
+          <div className="absolute top-[70%] left-0 w-full h-px dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
+          <div className="absolute top-[90%] left-0 w-full h-px dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
+          
+          <div className="absolute top-0 left-[10%] w-px h-full dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
+          <div className="absolute top-0 left-[30%] w-px h-full dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
+          <div className="absolute top-0 left-[50%] w-px h-full dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
+          <div className="absolute top-0 left-[70%] w-px h-full dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
+          <div className="absolute top-0 left-[90%] w-px h-full dark:bg-lending-primary/5 light:bg-indigo-300/5"></div>
+          
+          <div className="absolute top-[10%] left-[10%] w-2 h-2 rounded-full dark:bg-lending-primary/5 light:bg-indigo-300/10"></div>
+          <div className="absolute top-[30%] left-[30%] w-2 h-2 rounded-full dark:bg-lending-primary/5 light:bg-indigo-300/10"></div>
+          <div className="absolute top-[50%] left-[50%] w-2 h-2 rounded-full dark:bg-lending-primary/5 light:bg-indigo-300/10"></div>
+          <div className="absolute top-[70%] left-[70%] w-2 h-2 rounded-full dark:bg-lending-primary/5 light:bg-indigo-300/10"></div>
+          <div className="absolute top-[90%] left-[90%] w-2 h-2 rounded-full dark:bg-lending-primary/5 light:bg-indigo-300/10"></div>
         </div>
       </div>
-    </ThemeProvider>
+      
+      <header className="py-4 px-6 border-b dark:border-lending-border light:border-gray-200">
+        <div className="container mx-auto">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-8">
+              <div className="flex items-center cursor-pointer" onClick={() => navigate('/')}>
+                <CircuitBoard className="h-8 w-8 text-lending-primary mr-2" />
+                <span className="text-xl font-bold text-foreground">LenDiverse.ai</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full dark:bg-lending-card/70 light:bg-white/90 border dark:border-lending-border light:border-gray-200">
+                <Wallet className="h-4 w-4 text-lending-primary" />
+                <span className="font-medium">{truncateAddress(walletAddress)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+      
+      <main className="py-8 px-6">
+        <div className="container mx-auto">
+          <h1 className="text-3xl font-bold text-foreground mb-4">Dashboard</h1>
+          <p className="text-muted-foreground mb-8">Manage your assets and view your transaction history</p>
+          
+          <DashboardHeader walletAddress={walletAddress} />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <Card className="col-span-1 dark:bg-lending-card/70 backdrop-blur-sm border dark:border-lending-border light:border-gray-200 shadow-md hover:shadow-lg transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="text-xl">Portfolio</CardTitle>
+                <CardDescription>Total assets</CardDescription>
+                <div className="flex items-baseline mt-2">
+                  <span className="text-4xl font-bold">${totalDeposited.toFixed(2)}</span>
+                  <div className="ml-4 flex items-center gap-1">
+                    <span className="px-2 py-1 text-xs font-medium rounded-md bg-green-500/20 text-green-700 dark:text-green-400">+1.9%</span>
+                    <span className="text-sm text-muted-foreground">24h</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-sm">Currently lending</span>
+                  <ArrowUp className="h-4 w-4 text-green-500" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={performanceData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                      <defs>
+                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.1}/>
+                          <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="name" stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Area 
+                        type="monotone" 
+                        dataKey="value" 
+                        stroke="#8B5CF6" 
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#colorValue)"
+                        activeDot={{ r: 6, fill: '#8B5CF6', stroke: '#fff', strokeWidth: 2 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                <div className="mt-6 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Deposited</p>
+                    <div className="flex items-center mt-1">
+                      <span className="text-xl font-bold text-green-500">${totalDeposited.toFixed(2)}</span>
+                    </div>
+                    <p className="text-xs text-green-500">+15.81% APY</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Borrowed</p>
+                    <div className="flex items-center mt-1">
+                      <span className="text-xl font-bold text-amber-500">${totalBorrowed.toFixed(2)}</span>
+                    </div>
+                    <p className="text-xs text-amber-500">5.8% APR</p>
+                  </div>
+                </div>
+                
+                <div className="mt-6 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Health Factor</p>
+                    <div className="flex items-center mt-1">
+                      <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-bold mr-2">
+                        A
+                      </div>
+                      <span className="text-xl font-bold">1.85</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Safe</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Net APY</p>
+                    <div className="flex items-center mt-1">
+                      <span className="text-xl font-bold">+8.4%</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Effective yield</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="col-span-1 lg:col-span-2 dark:bg-lending-card/70 backdrop-blur-sm border dark:border-lending-border light:border-gray-200 shadow-md hover:shadow-lg transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="text-xl">Market Overview</CardTitle>
+                <CardDescription>Latest rates and opportunities</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-xl dark:bg-lending-dark/50 light:bg-white border dark:border-lending-border light:border-gray-200 hover:shadow-md transition-all duration-300">
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                          <Bitcoin className="h-5 w-5 text-amber-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Bitcoin</p>
+                          <p className="text-xs text-muted-foreground">BTC</p>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-1">Deposit APY</p>
+                    <p className="text-2xl font-bold text-green-500">1.2%</p>
+                    <p className="text-sm text-muted-foreground mb-1 mt-3">Borrow APR</p>
+                    <p className="text-2xl font-bold text-amber-500">4.5%</p>
+                  </div>
+                  
+                  <div className="p-4 rounded-xl dark:bg-lending-dark/50 light:bg-white border dark:border-lending-border light:border-gray-200 hover:shadow-md transition-all duration-300">
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                          <Zap className="h-5 w-5 text-indigo-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Ethereum</p>
+                          <p className="text-xs text-muted-foreground">ETH</p>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-1">Deposit APY</p>
+                    <p className="text-2xl font-bold text-green-500">3.2%</p>
+                    <p className="text-sm text-muted-foreground mb-1 mt-3">Borrow APR</p>
+                    <p className="text-2xl font-bold text-amber-500">5.8%</p>
+                  </div>
+                  
+                  <div className="p-4 rounded-xl dark:bg-lending-dark/50 light:bg-white border dark:border-lending-border light:border-gray-200 hover:shadow-md transition-all duration-300">
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                          <TrendingUp className="h-5 w-5 text-green-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium">USD Coin</p>
+                          <p className="text-xs text-muted-foreground">USDC</p>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-1">Deposit APY</p>
+                    <p className="text-2xl font-bold text-green-500">5.4%</p>
+                    <p className="text-sm text-muted-foreground mb-1 mt-3">Borrow APR</p>
+                    <p className="text-2xl font-bold text-amber-500">7.9%</p>
+                  </div>
+                </div>
+                
+                <div className="mt-6 p-4 rounded-xl dark:bg-lending-primary/10 light:bg-indigo-50 border dark:border-lending-primary/30 light:border-indigo-200">
+                  <div className="flex items-center gap-3 mb-2">
+                    <CircuitBoard className="h-5 w-5 text-lending-primary" />
+                    <p className="font-medium">Asset Recommendations</p>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">Based on your current portfolio and market conditions</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-3 rounded-lg border dark:border-lending-border light:border-gray-200 dark:bg-lending-dark/50 light:bg-white">
+                      <p className="font-medium">Top Deposit</p>
+                      <div className="flex items-center mt-2">
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center mr-2">
+                          <TrendingUp className="h-4 w-4 text-green-500" />
+                        </div>
+                        <div>
+                          <p className="font-bold">USDC</p>
+                          <p className="text-xs text-green-500">5.4% APY</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 rounded-lg border dark:border-lending-border light:border-gray-200 dark:bg-lending-dark/50 light:bg-white">
+                      <p className="font-medium">Top Borrow</p>
+                      <div className="flex items-center mt-2">
+                        <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center mr-2">
+                          <Bitcoin className="h-4 w-4 text-amber-500" />
+                        </div>
+                        <div>
+                          <p className="font-bold">BTC</p>
+                          <p className="text-xs text-amber-500">4.5% APR</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 rounded-lg border dark:border-lending-border light:border-gray-200 dark:bg-lending-dark/50 light:bg-white">
+                      <p className="font-medium">Opportunity</p>
+                      <div className="flex items-center mt-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center mr-2">
+                          <Zap className="h-4 w-4 text-blue-500" />
+                        </div>
+                        <div>
+                          <p className="font-bold">ETH-USDC</p>
+                          <p className="text-xs text-blue-500">8.1% Net APY</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <TransactionList />
+        </div>
+      </main>
+      
+      <div className="fixed bottom-8 right-8 z-50 dark:bg-lending-card/80 light:bg-white/80 backdrop-blur-md p-3 rounded-full shadow-lg border dark:border-lending-primary/20 light:border-indigo-200 opacity-80 hover:opacity-100 transition-all duration-300 hover-glow">
+        <div className="w-1 h-12 dark:bg-lending-dark light:bg-gray-200 rounded-full overflow-hidden">
+          <div className="w-full dark:bg-lending-primary light:bg-indigo-500 rounded-full animate-pulse-slow" style={{
+            height: `${Math.min(window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100, 100)}%`,
+            transition: 'height 0.3s ease-out'
+          }}></div>
+        </div>
+      </div>
+    </div>
   );
 };
 
-// Custom tooltip component for the chart
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     return (
@@ -454,6 +441,16 @@ const CustomTooltip = ({ active, payload }: any) => {
   }
 
   return null;
+};
+
+const Dashboard = () => {
+  return (
+    <ThemeProvider>
+      <TransactionProvider>
+        <DashboardContent />
+      </TransactionProvider>
+    </ThemeProvider>
+  );
 };
 
 export default Dashboard;

@@ -3,12 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Wallet, 
-  LogIn, 
   Menu, 
   X
 } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
 import ThemeToggle from './ThemeToggle';
+import { useNavigate } from 'react-router-dom';
 
 // Type definition for window with ethereum
 declare global {
@@ -22,6 +22,26 @@ const Navbar = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
   const [scrolled, setScrolled] = useState(false);
+  const navigate = useNavigate();
+
+  // Check if wallet is already connected on component mount
+  useEffect(() => {
+    const checkWalletConnection = async () => {
+      if (window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          if (accounts && accounts.length > 0) {
+            setWalletAddress(accounts[0]);
+            setIsConnected(true);
+          }
+        } catch (error) {
+          console.error("Error checking wallet connection:", error);
+        }
+      }
+    };
+    
+    checkWalletConnection();
+  }, []);
 
   // Handle scroll event to change navbar appearance
   useEffect(() => {
@@ -36,6 +56,27 @@ const Navbar = () => {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Listen for account changes
+  useEffect(() => {
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', (accounts: string[]) => {
+        if (accounts.length > 0) {
+          setWalletAddress(accounts[0]);
+          setIsConnected(true);
+        } else {
+          setWalletAddress('');
+          setIsConnected(false);
+        }
+      });
+    }
+    
+    return () => {
+      if (window.ethereum && window.ethereum.removeListener) {
+        window.ethereum.removeListener('accountsChanged', () => {});
+      }
+    };
   }, []);
 
   const toggleMenu = () => {
@@ -90,6 +131,18 @@ const Navbar = () => {
     }
   };
 
+  const goToDashboard = () => {
+    if (isConnected) {
+      navigate('/dashboard');
+    } else {
+      toast({
+        title: "Wallet Connection Required",
+        description: "Please connect your wallet to access the dashboard.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const truncateAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
@@ -102,7 +155,7 @@ const Navbar = () => {
     }`}>
       <div className="container mx-auto flex justify-between items-center">
         <div className="flex items-center">
-          <div className="font-bold text-2xl">
+          <div className="font-bold text-2xl cursor-pointer" onClick={() => navigate('/')}>
             <span className="text-lending-primary animate-glow">Len</span>
             <span className="text-lending-secondary">Di</span>
             <span className="text-lending-accent">verse</span>
@@ -131,6 +184,15 @@ const Navbar = () => {
             How It Works
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-lending-primary transition-all duration-300 group-hover:w-full"></span>
           </button>
+          {isConnected && (
+            <button 
+              onClick={goToDashboard} 
+              className="dark:text-gray-300 light:text-gray-700 hover:text-lending-primary transition-all duration-300 relative group"
+            >
+              Dashboard
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-lending-primary transition-all duration-300 group-hover:w-full"></span>
+            </button>
+          )}
         </div>
         
         <div className="flex items-center space-x-4">
@@ -140,6 +202,7 @@ const Navbar = () => {
             <Button 
               variant="outline" 
               className="flex items-center gap-2 dark:border-lending-border dark:bg-lending-card light:bg-white/90 light:border-gray-200 hover:bg-lending-primary/20 transition-all duration-300"
+              onClick={goToDashboard}
             >
               <Wallet className="h-4 w-4 text-lending-primary" />
               <span className="hidden sm:inline dark:text-white light:text-gray-800">{truncateAddress(walletAddress)}</span>
@@ -154,19 +217,6 @@ const Navbar = () => {
               <span className="hidden sm:inline dark:text-white light:text-gray-800">Connect</span>
             </Button>
           )}
-          
-          <Button 
-            className="bg-gradient-to-r from-lending-primary to-lending-secondary hover:opacity-90 transition-all duration-300 text-white flex items-center gap-2"
-            onClick={() => {
-              toast({
-                title: "Welcome to LenDiverse",
-                description: "Login functionality is coming soon!",
-              });
-            }}
-          >
-            <LogIn className="h-4 w-4" />
-            <span className="hidden sm:inline">Login</span>
-          </Button>
           
           <Button 
             variant="ghost" 
@@ -201,6 +251,14 @@ const Navbar = () => {
             >
               How It Works
             </button>
+            {isConnected && (
+              <button 
+                onClick={goToDashboard}
+                className="dark:text-gray-300 light:text-gray-700 hover:text-lending-primary transition-colors py-2 px-4 text-left"
+              >
+                Dashboard
+              </button>
+            )}
           </div>
         </div>
       )}

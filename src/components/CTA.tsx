@@ -3,9 +3,18 @@ import React, { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
+import { useNavigate } from 'react-router-dom';
+
+// Type definition for window with ethereum
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
 
 const CTA = () => {
   const sectionRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -27,6 +36,40 @@ const CTA = () => {
     };
   }, []);
 
+  const handleLaunchApp = async () => {
+    try {
+      // Check if MetaMask is installed
+      if (window.ethereum) {
+        // Request account access
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        
+        if (accounts && accounts.length > 0) {
+          // Navigate to dashboard if wallet is connected
+          navigate('/dashboard');
+        } else {
+          toast({
+            title: "Wallet Required",
+            description: "Please connect your wallet to access the app.",
+            variant: "destructive"
+          });
+        }
+      } else {
+        toast({
+          title: "MetaMask Not Found",
+          description: "Please install MetaMask to connect your wallet.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error connecting to wallet:", error);
+      toast({
+        title: "Connection Failed",
+        description: "Failed to connect to your wallet. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="py-20 mb-24 dark:bg-lending-darker light:bg-gray-100 transition-colors duration-300" ref={sectionRef}>
       <div className="container mx-auto px-4">
@@ -40,12 +83,7 @@ const CTA = () => {
               <Button 
                 className="bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 text-white flex items-center gap-2 px-6 py-6 transition-all duration-300 hover:translate-x-1 shadow-md animate-fade-in"
                 style={{ animationDelay: '0.4s' }}
-                onClick={() => {
-                  toast({
-                    title: "Coming Soon",
-                    description: "The app is currently under development. Stay tuned!",
-                  });
-                }}
+                onClick={handleLaunchApp}
               >
                 Launch App
                 <ArrowRight className="h-4 w-4" />
