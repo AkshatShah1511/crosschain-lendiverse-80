@@ -15,6 +15,7 @@ const PortfolioCard: React.FC = () => {
   
   // Update chart data when transactions change - force refresh with a key change
   useEffect(() => {
+    console.log("Transactions updated, refreshing chart data");
     const chartData = getPortfolioChartData();
     setPortfolioData([...chartData]); // Create a new array to force re-render
   }, [transactions, getPortfolioChartData]);
@@ -57,7 +58,7 @@ const PortfolioCard: React.FC = () => {
             <AreaChart 
               data={portfolioData} 
               margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-              key={transactions.length} // Force re-render when transactions change
+              key={`portfolio-chart-${transactions.length}`} // Force re-render when transactions change
             >
               <defs>
                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
