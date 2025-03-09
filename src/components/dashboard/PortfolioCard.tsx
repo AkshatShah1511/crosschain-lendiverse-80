@@ -7,17 +7,17 @@ import { useTransactions } from '@/contexts/TransactionContext';
 import { CustomTooltip } from './CustomTooltip';
 
 const PortfolioCard: React.FC = () => {
-  const { getTotalDeposited, getTotalBorrowed, getPortfolioChartData, getNetPortfolioValue, transactions } = useTransactions();
+  const { getTotalDeposited, getTotalBorrowed, getPortfolioChartData, getNetPortfolioValue, transactions, getTotalWithdrawn, getTotalRepaid } = useTransactions();
   const [portfolioData, setPortfolioData] = useState(getPortfolioChartData());
   const totalDeposited = getTotalDeposited();
   const totalBorrowed = getTotalBorrowed();
   const totalAssets = getNetPortfolioValue();
   
-  // Update chart data when transactions change
+  // Update chart data when transactions change - force refresh with a key change
   useEffect(() => {
     const chartData = getPortfolioChartData();
-    setPortfolioData(chartData);
-  }, [transactions, getPortfolioChartData]); // Directly depend on transactions for immediate updates
+    setPortfolioData([...chartData]); // Create a new array to force re-render
+  }, [transactions, getPortfolioChartData]); 
   
   // Calculate percentage change
   const calculatePercentChange = () => {
@@ -54,7 +54,11 @@ const PortfolioCard: React.FC = () => {
       <CardContent>
         <div className="h-48">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={portfolioData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+            <AreaChart 
+              data={portfolioData} 
+              margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+              key={transactions.length} // Force re-render when transactions change
+            >
               <defs>
                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.4}/>

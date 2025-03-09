@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 
 // Transaction types
 export type TransactionType = 'deposit' | 'withdraw' | 'lend' | 'borrow' | 'repay';
@@ -70,7 +70,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   }, [transactions]);
 
-  const addTransaction = (transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
+  const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
     const newTransaction: Transaction = {
       ...transaction,
       id: `tx-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -79,33 +79,33 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     
     setTransactions(prev => [newTransaction, ...prev]);
     return newTransaction;
-  };
+  }, []);
 
-  const getTotalDeposited = () => {
+  const getTotalDeposited = useCallback(() => {
     return transactions
       .filter(tx => (tx.type === 'deposit' || tx.type === 'lend') && tx.status === 'completed')
       .reduce((total, tx) => total + tx.amount, 0);
-  };
+  }, [transactions]);
 
-  const getTotalBorrowed = () => {
+  const getTotalBorrowed = useCallback(() => {
     return transactions
       .filter(tx => tx.type === 'borrow' && tx.status === 'completed')
       .reduce((total, tx) => total + tx.amount, 0);
-  };
+  }, [transactions]);
 
-  const getTotalWithdrawn = () => {
+  const getTotalWithdrawn = useCallback(() => {
     return transactions
       .filter(tx => tx.type === 'withdraw' && tx.status === 'completed')
       .reduce((total, tx) => total + tx.amount, 0);
-  };
+  }, [transactions]);
 
-  const getTotalRepaid = () => {
+  const getTotalRepaid = useCallback(() => {
     return transactions
       .filter(tx => tx.type === 'repay' && tx.status === 'completed')
       .reduce((total, tx) => total + tx.amount, 0);
-  };
+  }, [transactions]);
 
-  const getNetPortfolioValue = () => {
+  const getNetPortfolioValue = useCallback(() => {
     const deposited = getTotalDeposited();
     const withdrawn = getTotalWithdrawn();
     const borrowed = getTotalBorrowed();
@@ -113,16 +113,16 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     
     // Net portfolio = (deposited - withdrawn) + (borrowed - repaid)
     return (deposited - withdrawn) + (borrowed - repaid);
-  };
+  }, [getTotalDeposited, getTotalWithdrawn, getTotalBorrowed, getTotalRepaid]);
 
-  const getRecentTransactions = (limit = 5) => {
+  const getRecentTransactions = useCallback((limit = 5) => {
     return [...transactions]
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       .slice(0, limit);
-  };
+  }, [transactions]);
 
   // Generate portfolio data points from transactions with improved accuracy
-  const getPortfolioChartData = () => {
+  const getPortfolioChartData = useCallback(() => {
     // If there are no transactions, return some initial data
     if (transactions.length === 0) {
       const initialData: PortfolioDataPoint[] = [];
@@ -202,7 +202,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
     
     return dataPoints;
-  };
+  }, [transactions]);
 
   const value = {
     transactions,
