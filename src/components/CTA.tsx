@@ -45,6 +45,10 @@ const CTA = () => {
         
         if (accounts && accounts.length > 0) {
           // Navigate to dashboard if wallet is connected
+          toast({
+            title: "Wallet Connected",
+            description: "Successfully connected to your wallet.",
+          });
           navigate('/dashboard');
         } else {
           toast({

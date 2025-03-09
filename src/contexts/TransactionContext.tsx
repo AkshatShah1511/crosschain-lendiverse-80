@@ -14,12 +14,19 @@ export interface Transaction {
   status: 'pending' | 'completed' | 'failed';
 }
 
+export interface PortfolioDataPoint {
+  name: string;
+  value: number;
+  timestamp: Date;
+}
+
 interface TransactionContextType {
   transactions: Transaction[];
   addTransaction: (transaction: Omit<Transaction, 'id' | 'timestamp'>) => void;
   getTotalDeposited: () => number;
   getTotalBorrowed: () => number;
   getRecentTransactions: (limit?: number) => Transaction[];
+  getPortfolioChartData: () => PortfolioDataPoint[];
 }
 
 const TransactionContext = createContext<TransactionContextType | undefined>(undefined);
@@ -89,12 +96,96 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
       .slice(0, limit);
   };
 
+  // Generate portfolio data points from transactions
+  const getPortfolioChartData = () => {
+    // If there are no transactions, return some initial data
+    if (transactions.length === 0) {
+      const initialData: PortfolioDataPoint[] = [];
+      const now = new Date();
+      
+      // Generate data for the last 30 days
+      for (let i = 30; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        
+        initialData.push({
+          name: date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }),
+          value: 0,
+          timestamp: new Date(date)
+        });
+      }
+      
+      return initialData;
+    }
+
+    // Sort transactions by date
+    const sortedTransactions = [...transactions]
+      .filter(tx => tx.status === 'completed')
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    
+    // Get the first and last date
+    const firstDate = new Date(sortedTransactions[0].timestamp);
+    firstDate.setDate(firstDate.getDate() - 1); // Start from one day before the first transaction
+    
+    const lastDate = new Date();
+    
+    const dataPoints: PortfolioDataPoint[] = [];
+    
+    // Initialize a running total
+    let runningTotal = 0;
+    
+    // Create a map to store the running total for each day
+    const dailyTotals = new Map<string, number>();
+    
+    // Fill in data for every day between first and last date
+    const currentDate = new Date(firstDate);
+    while (currentDate <= lastDate) {
+      const dateString = currentDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+      
+      // Process all transactions that occurred on or before this date
+      for (const tx of sortedTransactions) {
+        if (tx.timestamp <= currentDate && !dailyTotals.has(tx.id)) {
+          // Add to running total based on transaction type
+          switch (tx.type) {
+            case 'deposit':
+            case 'lend':
+              runningTotal += tx.amount;
+              break;
+            case 'withdraw':
+              runningTotal -= tx.amount;
+              break;
+            case 'borrow':
+              runningTotal += tx.amount;
+              break;
+            case 'repay':
+              runningTotal -= tx.amount;
+              break;
+          }
+          dailyTotals.set(tx.id, runningTotal);
+        }
+      }
+      
+      // Add data point for this day
+      dataPoints.push({
+        name: dateString,
+        value: runningTotal > 0 ? runningTotal : 0, // Ensure we don't show negative values
+        timestamp: new Date(currentDate)
+      });
+      
+      // Move to next day
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return dataPoints;
+  };
+
   const value = {
     transactions,
     addTransaction,
     getTotalDeposited,
     getTotalBorrowed,
     getRecentTransactions,
+    getPortfolioChartData,
   };
 
   return (
