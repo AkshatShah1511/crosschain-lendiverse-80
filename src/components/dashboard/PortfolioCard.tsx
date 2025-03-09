@@ -17,7 +17,7 @@ const PortfolioCard: React.FC = () => {
   useEffect(() => {
     const chartData = getPortfolioChartData();
     setPortfolioData([...chartData]); // Create a new array to force re-render
-  }, [transactions, getPortfolioChartData]); 
+  }, [transactions, getPortfolioChartData]);
   
   // Calculate percentage change
   const calculatePercentChange = () => {
