@@ -25,6 +25,9 @@ interface TransactionContextType {
   addTransaction: (transaction: Omit<Transaction, 'id' | 'timestamp'>) => void;
   getTotalDeposited: () => number;
   getTotalBorrowed: () => number;
+  getTotalWithdrawn: () => number;
+  getTotalRepaid: () => number;
+  getNetPortfolioValue: () => number;
   getRecentTransactions: (limit?: number) => Transaction[];
   getPortfolioChartData: () => PortfolioDataPoint[];
 }
@@ -118,7 +121,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
       .slice(0, limit);
   };
 
-  // Generate portfolio data points from transactions
+  // Generate portfolio data points from transactions with improved accuracy
   const getPortfolioChartData = () => {
     // If there are no transactions, return some initial data
     if (transactions.length === 0) {
@@ -155,9 +158,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     
     // Initialize a running total
     let runningTotal = 0;
-    
-    // Create a map to store the running total for each day
-    const dailyTotals = new Map<string, number>();
+    const processedTxIds = new Set<string>(); // Track processed transactions
     
     // Fill in data for every day between first and last date
     const currentDate = new Date(firstDate);
@@ -166,7 +167,9 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
       
       // Process all transactions that occurred on or before this date
       for (const tx of sortedTransactions) {
-        if (tx.timestamp <= currentDate && !dailyTotals.has(tx.id)) {
+        const txDate = new Date(tx.timestamp);
+        // Check if transaction is on or before current date and hasn't been processed
+        if (txDate <= currentDate && !processedTxIds.has(tx.id)) {
           // Add to running total based on transaction type
           switch (tx.type) {
             case 'deposit':
@@ -183,14 +186,14 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
               runningTotal -= tx.amount;
               break;
           }
-          dailyTotals.set(tx.id, runningTotal);
+          processedTxIds.add(tx.id); // Mark as processed
         }
       }
       
       // Add data point for this day
       dataPoints.push({
         name: dateString,
-        value: runningTotal > 0 ? runningTotal : 0, // Ensure we don't show negative values
+        value: Math.max(runningTotal, 0), // Ensure we don't show negative values
         timestamp: new Date(currentDate)
       });
       
@@ -206,6 +209,9 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     addTransaction,
     getTotalDeposited,
     getTotalBorrowed,
+    getTotalWithdrawn,
+    getTotalRepaid,
+    getNetPortfolioValue,
     getRecentTransactions,
     getPortfolioChartData,
   };

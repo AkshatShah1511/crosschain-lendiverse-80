@@ -7,17 +7,17 @@ import { useTransactions } from '@/contexts/TransactionContext';
 import { CustomTooltip } from './CustomTooltip';
 
 const PortfolioCard: React.FC = () => {
-  const { getTotalDeposited, getTotalBorrowed, getPortfolioChartData } = useTransactions();
+  const { getTotalDeposited, getTotalBorrowed, getPortfolioChartData, getNetPortfolioValue, transactions } = useTransactions();
   const [portfolioData, setPortfolioData] = useState(getPortfolioChartData());
   const totalDeposited = getTotalDeposited();
   const totalBorrowed = getTotalBorrowed();
-  const totalAssets = totalDeposited;
+  const totalAssets = getNetPortfolioValue();
   
   // Update chart data when transactions change
   useEffect(() => {
     const chartData = getPortfolioChartData();
     setPortfolioData(chartData);
-  }, [getTotalDeposited, getTotalBorrowed, getPortfolioChartData]);
+  }, [transactions, getPortfolioChartData]); // Directly depend on transactions for immediate updates
   
   // Calculate percentage change
   const calculatePercentChange = () => {

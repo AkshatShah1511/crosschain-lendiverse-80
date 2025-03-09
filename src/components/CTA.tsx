@@ -49,6 +49,7 @@ const CTA = () => {
             title: "Wallet Connected",
             description: "Successfully connected to your wallet.",
           });
+          // Immediately navigate to dashboard after successful connection
           navigate('/dashboard');
         } else {
           toast({
