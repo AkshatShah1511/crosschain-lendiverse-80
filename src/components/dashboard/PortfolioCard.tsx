@@ -15,7 +15,8 @@ const PortfolioCard: React.FC = () => {
   
   // Update chart data when transactions change
   useEffect(() => {
-    setPortfolioData(getPortfolioChartData());
+    const chartData = getPortfolioChartData();
+    setPortfolioData(chartData);
   }, [getTotalDeposited, getTotalBorrowed, getPortfolioChartData]);
   
   // Calculate percentage change

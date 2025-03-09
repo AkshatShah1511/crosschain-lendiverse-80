@@ -80,7 +80,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const getTotalDeposited = () => {
     return transactions
-      .filter(tx => tx.type === 'deposit' && tx.status === 'completed')
+      .filter(tx => (tx.type === 'deposit' || tx.type === 'lend') && tx.status === 'completed')
       .reduce((total, tx) => total + tx.amount, 0);
   };
 
@@ -88,6 +88,28 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     return transactions
       .filter(tx => tx.type === 'borrow' && tx.status === 'completed')
       .reduce((total, tx) => total + tx.amount, 0);
+  };
+
+  const getTotalWithdrawn = () => {
+    return transactions
+      .filter(tx => tx.type === 'withdraw' && tx.status === 'completed')
+      .reduce((total, tx) => total + tx.amount, 0);
+  };
+
+  const getTotalRepaid = () => {
+    return transactions
+      .filter(tx => tx.type === 'repay' && tx.status === 'completed')
+      .reduce((total, tx) => total + tx.amount, 0);
+  };
+
+  const getNetPortfolioValue = () => {
+    const deposited = getTotalDeposited();
+    const withdrawn = getTotalWithdrawn();
+    const borrowed = getTotalBorrowed();
+    const repaid = getTotalRepaid();
+    
+    // Net portfolio = (deposited - withdrawn) + (borrowed - repaid)
+    return (deposited - withdrawn) + (borrowed - repaid);
   };
 
   const getRecentTransactions = (limit = 5) => {
